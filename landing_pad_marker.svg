@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="297mm"
+   height="420mm"
+   viewBox="0 0 297 420"
+   version="1.1"
+   id="svg8"
+   sodipodi:docname="landing_pad_marker.svg"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)">
+  <defs
+     id="defs2" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.35355339"
+     inkscape:cx="-2.1650876"
+     inkscape:cy="790.66374"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer3"
+     showgrid="false"
+     inkscape:window-width="1440"
+     inkscape:window-height="838"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,123)" />
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Circle_out" />
+  <g
+     inkscape:groupmode="layer"
+     id="layer3"
+     inkscape:label="Circle_in">
+    <g
+       id="g46"
+       transform="translate(-9.3544335,-169.50234)">
+      <circle
+         r="125"
+         cy="369.56815"
+         cx="162.17596"
+         id="path3728"
+         style="fill:#000000;stroke-width:0.22808906" />
+      <circle
+         r="100"
+         cy="369.56815"
+         cx="162.17596"
+         id="path3730"
+         style="fill:#ffffff;stroke-width:0.22048607" />
+    </g>
+    <rect
+       id="rect16-3"
+       width="50"
+       height="50"
+       x="127.82153"
+       y="122.29462"
+       style="stroke-width:0.18072341" />
+    <rect
+       id="rect16-3-6"
+       width="100"
+       height="50"
+       x="102.82153"
+       y="225.87186"
+       style="stroke-width:0.2555815" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="House">
+    <ellipse
+       id="path17"
+       cx="147.71371"
+       cy="213.91463"
+       style="stroke-width:0.12957633"
+       r="17.5" />
+    <g
+       id="g41"
+       transform="translate(243.83297,20.949671)">
+      <circle
+         r="17.5"
+         style="stroke-width:0.27478248"
+         cy="179.11613"
+         cx="-91.011436"
+         id="path18" />
+      <circle
+         r="7.5"
+         style="fill:#ffffff;stroke-width:0.05553271"
+         cy="179.11613"
+         cx="-91.011436"
+         id="path17-3" />
+    </g>
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer5"
+     inkscape:label="Circle_in_in" />
+</svg>
