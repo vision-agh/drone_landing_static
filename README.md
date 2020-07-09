@@ -33,4 +33,5 @@ If you have any questions about the application, feel free to contact us.
 # Versions
 
 01.04.2020 - Version 1.0
+
 07.07.2020 - Version 2.0
