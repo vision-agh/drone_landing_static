@@ -30,17 +30,18 @@
 
 /*  Versions:
     01.04.2020 - Version 1.0
-
+    07.07.2020 - Version 2.0
 */
 
 /*
     The OpenCV library in version 4.1.0 was used in this project, please make sure you have it installed
     and configured properly in order to run the application.
 
-    In the dataset directory there are two sets of test images. In test_set1 there are 32 images
+    In the dataset directory there are three sets of test images. In test_set1 there are 32 images
     with the size of the marker determined manually and placed in the test_set1_data.csv file.
     In test_set2 there are 18 images with the altitude data from Pixhawk controller and placed
-    in the test_set2_data.csv file. All 50 images are in HD resolution (parameters WIDTH 1280, HEIGHT 720).
+    in the test_set2_data.csv file. In test_set3 there are 25 images with the altitude data obtained with LIDAR
+    and placed in the test_set3_data.csv file. All 75 images are in HD resolution (parameters WIDTH 1280, HEIGHT 720).
 
     The size of the windows for thresholding can be configured, but for now only 128x128 was used
     (parameters pSX 128, pSY 128).
@@ -48,18 +49,19 @@
     If you use a dataset with many images, you may want to skip some frames from the first one
     (parameter START_FRAME 0) or some subsequent frames (parameter STEP 1).
 
-    New test sets will be added later and synchronized with the data from LIDAR. The mounting
-    of the camera will be changed so as not to have visible parts of the drone in the image.
-    For now please use the provided mask (parameter UAV_MASK 1) to avoid possible problems
-    with marker detection.
+    More test sets will be added later and synchronized with the data from LIDAR. The mounting
+    of the camera is now changed so there are no visible parts of the drone in the image -
+    that is done for the newest test set (and it will be the standard for the next sets).
+    For the older ones (test_set1 and test_set2) you can use the provided mask (parameter UAV_MASK 1)
+    to avoid the possible problems with marker detection.
 
     If you use the altitude data from Pixhawk or LIDAR, you may want to average the values,
     but do it only if the differences between subsequent frames and measurements are small.
     Otherwise process each value separately (parameter AVERAGE 0).
 
-    You can choose between two provided test sets or use your own set (with our marker to detect
-    it correctly, the marker is provided in the repository). Put a full or relative path to the 
-    directory with images (PATH). The size of the marker determined manually or the altitude data 
+    You can choose between three provided test sets or use your own set (with our marker to detect
+    it correctly, the marker is provided in the repository). Put a full or relative path to the
+    directory with images (PATH). The size of the marker determined manually or the altitude data
     from either Pixhawk or LIDAR is read from the .csv file (PATH_HEIGHT).
 
     If you use the marker size in pixels instead of the altitude, use the test_set1_data.csv
@@ -67,7 +69,7 @@
     If you use the altitude data from Pixhawk, put it in metres into the file
     as in the test_set2_data.csv file and put "Pixhawk" in the header (Frame_ID Pixhawk, Altitude [m]).
     If you use the altitude data from LIDAR, put it in metres into the file
-    as in the test_set2_data.csv file and put "LIDAR" in the header (Frame_ID LIDAR, Altitude [m]).
+    as in the test_set3_data.csv file and put "LIDAR" in the header (Frame_ID LIDAR, Altitude [m]).
 
     The logs with the number of objects from CCL, the position of the marker and its offset
     from the centre of the image along with its orientation are written to the .csv file (PATH_LOGS).
@@ -104,15 +106,15 @@
 #define STEP 1
 
 // Mask visible parts of the drone
-#define USE_MASK 1
+#define USE_MASK 0
 
 // Average last 5 values from LIDAR or Pixhawk
 #define AVERAGE 0
 
 // Path to a directory containing a dataset
-const std::string PATH = "dataset/test_set1/";
-const std::string PATH_HEIGHT = "dataset/test_set1_data.csv";
-const std::string PATH_LOGS = "dataset/test_set1_logs.csv";
+const std::string PATH = "dataset/test_set3/";
+const std::string PATH_HEIGHT = "dataset/test_set3_data.csv";
+const std::string PATH_LOGS = "dataset/test_set3_logs.csv";
 
 #if USE_MASK
 const std::string PATH_MASK = "uav_mask.png";
@@ -170,7 +172,7 @@ int main()
             {
                 getline(inputFile, filename, ',');
                 inputFile >> altitude;
-                alt[i] = std::stod(altitude) * 100 - 20; // Subtract 20 cm as it's the difference between position of LIDAR and camera in our case
+                alt[i] = std::stod(altitude) * 100 - 10; // Subtract 10 cm as it's the difference between position of LIDAR and camera in our case
                 alt[i] = std::max(std::min(alt[i], 300.0), 0.0);
 #if AVERAGE
                 if (i >= 4)
@@ -184,7 +186,7 @@ int main()
         }
 
         // Use altitude data from Pixhawk
-        if (header.find("Pixhawk") != std::string::npos)
+        else if (header.find("Pixhawk") != std::string::npos)
         {
             for (int i = 0; i < nimages; i++)
             {
@@ -212,7 +214,6 @@ int main()
                 table_circles[i] = int(alt[i]);
             }
         }
-
     }
     inputFile.close();
 
@@ -233,6 +234,7 @@ int main()
     // -------------------------------------------------------------------------------------------------------------------
     // CONSECUTIVE FRAMES PROCESSING
     // -------------------------------------------------------------------------------------------------------------------
+
     for (std::vector<std::string>::iterator it = listOfFiles.begin() + 2 + START_FRAME; it < listOfFiles.end(); it = it + STEP)
     {
         // Load image
@@ -286,7 +288,7 @@ int main()
                 cv::Mat patch = grey(cv::Range(ii, std::min(ii + pSX - 1, HEIGHT)), cv::Range(jj, std::min(jj + pSY - 1, WIDTH)));
                 double minP, maxP;
                 cv::minMaxLoc(patch, &minP, &maxP);
-                unsigned int thrW = (maxP - minP) * 0.25 + minP;
+                unsigned int thrW = (maxP - minP) * 0.5 + minP;
                 thresholds.at<uchar>(floor(ii / pSX), floor(jj / pSY)) = thrW;
 
                 for (int j = jj; j < std::min(jj + pSY, WIDTH); j++)
@@ -365,17 +367,17 @@ int main()
             }
         }
 
-        // Erosion 3x3
-        cv::Mat IB_E = cv::Mat::zeros(HEIGHT, WIDTH, CV_8UC1);
-        cv::erode(IB_L, IB_E, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)));
+        // Dilation 3x3
+        cv::Mat IB_D = cv::Mat::zeros(HEIGHT, WIDTH, CV_8UC1);
+        cv::dilate(IB_L, IB_D, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)));
 
         // Median filter 5x5
         cv::Mat IB_M = cv::Mat::zeros(HEIGHT, WIDTH, CV_8UC1);
-        cv::medianBlur(IB_E, IB_M, 5);
+        cv::medianBlur(IB_D, IB_M, 5);
 
-        // Dilation 3x3
-        cv::Mat IB_D = cv::Mat::zeros(HEIGHT, WIDTH, CV_8UC1);
-        cv::dilate(IB_M, IB_D, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)));
+        // Erosion 3x3
+        cv::Mat IB_E = cv::Mat::zeros(HEIGHT, WIDTH, CV_8UC1);
+        cv::erode(IB_M, IB_E, cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)));
 
 #if USE_MASK
         // Use the UAV mask
@@ -384,7 +386,7 @@ int main()
             for (int ii = 0; ii < HEIGHT; ii++)
             {
                 if (mask.at<uchar>(ii, jj) == 0)
-                    IB_D.at<uchar>(ii, jj) = 0;
+                    IB_E.at<uchar>(ii, jj) = 0;
             }
         }
 #endif
@@ -392,16 +394,16 @@ int main()
         // Connected Component Labelling (CCL)
         // Stats: leftmost(x), topmost(y), horizontal size, vertical size, total area
         cv::Mat IB_S, stats, cent;
-        cv::connectedComponentsWithStats(IB_D, IB_S, stats, cent, 8, CV_32S, cv::CCL_DEFAULT);
+        cv::connectedComponentsWithStats(IB_E, IB_S, stats, cent, 8, CV_32S, cv::CCL_DEFAULT);
         cv::normalize(IB_S, IB_S, 0, 255, cv::NORM_MINMAX, CV_8UC1, cv::Mat());
 
         // Convert binary image to 3-channel image
         cv::Mat IB_VIS = cv::Mat::zeros(HEIGHT, WIDTH, CV_8UC3);
         cv::Mat channel[3];
         split(IB_VIS, channel);
-        channel[0] = IB_D;
-        channel[1] = IB_D;
-        channel[2] = IB_D;
+        channel[0] = IB_E;
+        channel[1] = IB_E;
+        channel[2] = IB_E;
         merge(channel, 3, IB_VIS);
 
         // Temporary vectors for centroids (cent) of circles (c), squares (s), rectangles (r)
@@ -426,6 +428,7 @@ int main()
         // -------------------------------------------------------------------------------------------------------------------
         // OBJECT PARAMETER ANALYSIS
         // -------------------------------------------------------------------------------------------------------------------
+
         // Iterate through all detected objects without background
         for (int i = 1; i < stats.rows; i++)
         {
@@ -435,32 +438,32 @@ int main()
             bboxSize = (double)stats.at<int>(i, 2) * (double)stats.at<int>(i, 3);
 
             /** Detect big circle
-             * @param bboxRatio         bounding box ratio is smaller than 1.15 (the shape of bbox is always similar to square)
-             * @param bboxAreaRatio     bounding box area ratio is bigger than 2.75 (as it's rather a ring than a circle, many pixels inside bbox don't belong to the object)
+             * @param bboxRatio         bounding box ratio is smaller than 1.4 (the shape of bbox is always similar to square)
+             * @param bboxAreaRatio     bounding box area ratio is bigger than 3.0 (as it's rather a ring than a circle, many pixels inside bbox don't belong to the object)
              * @param meanSquareSize    mean square size of bounding box is bigger than 0.5 * circle_size (the average of height and width of bbox can't be too small at certain altitude)
              * @param meanSquareSize    mean square size of bounding box is smaller than 1.5 * circle_size (the average of height and width of bbox can't be too big at certain altitude)
              */
             /** Detect small circle
-             * @param bboxRatio             bounding box ratio is smaller than 1.15 (the shape of bbox is always similar to square)
+             * @param bboxRatio             bounding box ratio is smaller than 1.4 (the shape of bbox is always similar to square)
              * @param circle_size           circle size is bigger than 150 (the altitude is lower than a certain threshold)
              * @param circle_size           circle size is smaller than 500 (the altitude is higher than a certain threshold)
              * @param bboxAreaRatio         bounding box area ratio is bigger than 1.55 (no more than 65% of pixels inside bbox belong to the object)
              * @param bboxAreaRatio         bounding box area ratio is smaller than 2.0 (at least 50% of pixels inside bbox belong to the object)
-             * @param meanSquareSize        mean square size of bounding box is smaller than 1.1 * square_size (the average of height and width of bbox can't be too big at certain altitude)
+             * @param meanSquareSize        mean square size of bounding box is smaller than 0.65 * square_size (the average of height and width of bbox can't be too big at certain altitude)
              * @param stats.at<int>(i, 4)   area of the object is smaller than 0.04 * circle_size * circle_size (the area of object can't be too big at certain altitude)
              * @param stats.at<int>(i, 4)   area of the object is bigger than 0.005 * circle_size * circle_size (the area of object can't be too small at certain altitude)
              or
-             * @param bboxRatio             bounding box ratio is smaller than 1.15 (the shape of bbox is always similar to square)
+             * @param bboxRatio             bounding box ratio is smaller than 1.4 (the shape of bbox is always similar to square)
              * @param circle_size           circle size is bigger than 500 (the altitude is lower than a certain threshold)
              * @param bboxAreaRatio         bounding box area ratio is bigger than 1.5 (no more than 67% of pixels inside bbox belong to the object)
              * @param bboxAreaRatio         bounding box area ratio is smaller than 2.0 (at least 50% of pixels inside bbox belong to the object)
              * @param stats.at<int>(i, 4)   area of the object is bigger than 0.01 * circle_size * circle_size (the area of object can't be too small at certain altitude)
+             * @param stats.at<int>(i, 4)   area of the object is smaller than 0.04 * circle_size * circle_size (the area of object can't be too big at certain altitude)
              */
-
-            if (bboxRatio < 1.15 && ((bboxAreaRatio > 2.75 && meanSquareSize > 0.5 * circle_size && meanSquareSize < 1.5 * circle_size) ||
-                                    (circle_size > 150 && circle_size < 500 && bboxAreaRatio > 1.55 && bboxAreaRatio < 2.0 && meanSquareSize < 1.1 * square_size &&
+            if (bboxRatio < 1.4 && ((bboxAreaRatio > 3.0 && meanSquareSize > 0.5 * circle_size && meanSquareSize < 1.5 * circle_size) ||
+                                    (circle_size > 150 && circle_size < 500 && bboxAreaRatio > 1.55 && bboxAreaRatio < 2.0 && meanSquareSize < 0.65 * square_size &&
                                      stats.at<int>(i, 4) < 0.04 * circle_size * circle_size && stats.at<int>(i, 4) > 0.005 * circle_size * circle_size) ||
-                                     (circle_size >= 500 && bboxAreaRatio > 1.5 && bboxAreaRatio < 2.0 && stats.at<int>(i, 4) > 0.01 * circle_size * circle_size)))
+                                     (circle_size >= 500 && bboxAreaRatio > 1.5 && bboxAreaRatio < 2.0 && stats.at<int>(i, 4) > 0.01 * circle_size * circle_size && stats.at<int>(i, 4) < 0.04 * circle_size * circle_size)))
             {
                 // Save the bounding box and centroid
                 std::vector<double> temp_bbox;
@@ -474,13 +477,15 @@ int main()
             }
 
             /** Detect square
-             * @param bboxRatio             bounding box ratio is smaller than 1.25 (the shape of bbox is similar to square even if it's rotated)
+             * @param bboxRatio             bounding box ratio is smaller than 1.4 (the shape of bbox is similar to square even if it's rotated)
              * @param bboxAreaRatio         bounding box area ratio is smaller than 2.25 (at least 44% of pixels inside bbox belong to the object)
-             * @param bboxSize              bounding box size is smaller than 3.0 * square_size * square_size (the bbox can't be too big at certain altitude)
-             * @param stats.at<int>(i, 4)   area of the object is bigger than 0.4 * square_size * square_size (the area of object can't be too small at certain altitude)
-             * @param stats.at<int>(i, 4)   area of the object is smaller than 1.7 * square_size * square_size (the area of object can't be too small at certain altitude)
+             * @param bboxSize              bounding box size is bigger than 0.4 * square_size * square_size (the bbox can't be too small at certain altitude)
+             * @param bboxSize              bounding box size is smaller than 2.0 * square_size * square_size (the bbox can't be too big at certain altitude)
+             * @param stats.at<int>(i, 4)   area of the object is bigger than 0.3 * square_size * square_size (the area of object can't be too small at certain altitude)
+             * @param stats.at<int>(i, 4)   area of the object is smaller than 1.8 * square_size * square_size (the area of object can't be too small at certain altitude)
              */
-            else if (bboxRatio < 1.25 && bboxAreaRatio < 2.25 && bboxSize < 3.0 * square_size * square_size && stats.at<int>(i, 4) > 0.4 * square_size * square_size && stats.at<int>(i, 4) < 1.7 * square_size * square_size)
+            else if (bboxRatio < 1.4 && bboxAreaRatio < 2.25 && bboxSize > 0.4 * square_size * square_size && bboxSize < 2.0 * square_size * square_size &&
+                    stats.at<int>(i, 4) > 0.3 * square_size * square_size && stats.at<int>(i, 4) < 1.8 * square_size * square_size)
             {
                 // Save the bounding box and centroid
                 std::vector<double> temp_bbox;
@@ -495,12 +500,13 @@ int main()
 
             /** Detect rectangle
              * @param bboxRatio             bounding box ratio equals at least 1.0 (the shape of bbox can be similar to square when it's rotated)
-             * @param bboxRatio             bounding box ratio is smaller than 2.4 (the difference between height and width of bbox can't be too big)
-             * @param bboxAreaRatio         bounding box area ratio is smaller than 2.2 (at least 45% of pixels inside bbox belong to the object)
-             * @param bboxSize              bounding box size is bigger than 1.3 * square_size * square_size (the bbox can't be too small at certain altitude)
-             * @param stats.at<int>(i, 4)   area of the object is bigger than 0.4 * square_size * square_size (the area of object can't be too small at certain altitude)
+             * @param bboxRatio             bounding box ratio is smaller than 2.5 (the difference between height and width of bbox can't be too big)
+             * @param bboxAreaRatio         bounding box area ratio is smaller than 2.3 (at least 43% of pixels inside bbox belong to the object)
+             * @param bboxSize              bounding box size is bigger than 1.1 * square_size * square_size (the bbox can't be too small at certain altitude)
+             * @param bboxSize              bounding box size is smaller than 10 * square_size * square_size (the bbox can't be too big at certain altitude)
+             * @param stats.at<int>(i, 4)   area of the object is bigger than 0.5 * square_size * square_size (the area of object can't be too small at certain altitude)
              */
-            else if (bboxRatio >= 1.0 && bboxRatio < 2.4 && bboxAreaRatio < 2.2 && bboxSize > 1.3 * square_size * square_size && stats.at<int>(i, 4) > 0.4 * square_size * square_size)
+            else if (bboxRatio >= 1.0 && bboxRatio < 2.5 && bboxAreaRatio < 2.3 && bboxSize > 1.1 * square_size * square_size && bboxSize < 10 * square_size * square_size && stats.at<int>(i, 4) > 0.5 * square_size * square_size)
             {
                 //Save the bounding box and centroid
                 std::vector<double> temp_bbox;
@@ -564,8 +570,8 @@ int main()
                                 if (pr.x > 0 && pr.y > 0)
                                     cv::circle(IB_VIS, pr, 2, cv::Scalar(255, 0, 0), 2);
 
-                                // If the distance is between 20 or 30% (based on the altitude) to 65% of the circle size, draw the line and calculate the position and orientation
-                                if (sqrt(dist) < circle_size * 0.65 && ((sqrt(dist) > circle_size * 0.3) || (sqrt(dist) > circle_size * 0.2 && circle_size > 200)))
+                                // If the distance is between 27,5% (based on the altitude) to 65% of the circle size, draw the line and calculate the position and orientation
+                                if (sqrt(dist) < circle_size * 0.65 && sqrt(dist) > circle_size * 0.275)
                                 {
                                     cv::Point p1, p2;
                                     p1.x = cents[j][0];
